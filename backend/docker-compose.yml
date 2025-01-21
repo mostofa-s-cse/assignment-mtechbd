@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres
+    container_name: postgres_db
+    shm_size: 1g
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+
+  redis:
+    container_name: redis
+    image: redis
+    command: redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASS}
+    ports:
+      - '6379:6379'
+
+volumes:
+  pgdata:
+  pgadmin-data:

@@ -1,0 +1,46 @@
+{
+  "name": "home_task",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "NODE_ENV=development vite --port 3000 --mode development --host",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@mantine/core": "^7.15.2",
+    "@mantine/form": "^7.15.2",
+    "@mantine/hooks": "^7.15.2",
+    "@mantine/modals": "^7.15.2",
+    "@mantine/notifications": "^7.15.2",
+    "@tabler/icons-react": "^3.9.0",
+    "@reduxjs/toolkit": "^2.5.0",
+    "@tanstack/react-query": "^4.26.1",
+    "@tanstack/react-query-devtools": "^4.26.1",
+    "axios": "^1.7.9",
+    "dayjs": "^1.11.13",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-redux": "^9.2.0",
+    "react-router-dom": "^6.24.1",
+    "redux-persist": "^6.0.0",
+    "yup": "^1.6.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.17.0",
+    "eslint-plugin-react": "^7.37.2",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "eslint-plugin-react-refresh": "^0.4.16",
+    "globals": "^15.14.0",
+    "postcss": "^8.4.49",
+    "postcss-preset-mantine": "^1.17.0",
+    "postcss-simple-vars": "^7.0.1",
+    "vite": "^6.0.5"
+  }
+}
