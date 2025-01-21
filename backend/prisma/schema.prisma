@@ -47,3 +47,68 @@ model Roles {
 
   @@map("roles")
 }
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String
+  price       Float
+  weight      Float
+  isEnabled   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  OrderItems  OrderItem[]
+}
+
+
+model Promotion {
+  id          Int          @id @default(autoincrement())
+  title       String
+  type        String        // "percentage" | "fixed" | "weighted"
+  startDate   DateTime
+  endDate     DateTime
+  isEnabled   Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  PromotionSlabs PromotionSlab[]
+}
+
+
+model PromotionSlab {
+  id            Int      @id @default(autoincrement())
+  promotionId   Int
+  minWeight     Float
+  maxWeight     Float
+  discountPerUnit Float   // Discount per weight unit
+
+  Promotion     Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+}
+
+
+model Order {
+  id            Int       @id @default(autoincrement())
+  customerName  String
+  customerEmail String
+  subtotal      Float
+  totalDiscount Float
+  grandTotal    Float
+  createdAt     DateTime  @default(now())
+
+  OrderItems    OrderItem[]
+}
+
+
+model OrderItem {
+  id          Int      @id @default(autoincrement())
+  orderId     Int
+  productId   Int
+  quantity    Int
+  weight      Float    // Total weight (product weight × quantity)
+  discount    Float    // Total discount for this product
+  totalPrice  Float    // Final price after discount
+
+  Order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  Product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}

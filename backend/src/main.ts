@@ -8,8 +8,6 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const PORT = configService.get('PORT');
 
-  console.log('port',PORT);
-
   app.useGlobalPipes(
     new ValidationPipe({
       // adds validation to all routes

@@ -21,6 +21,7 @@
     "prisma:generate": "npx prisma generate",
     "seed:run": "dotenv -e ./configs/.env.development -- npx prisma db seed",
     "seed:stage": "dotenv -e ./configs/.env.staging -- npx prisma db seed"
+
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
