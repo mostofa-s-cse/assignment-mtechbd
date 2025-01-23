@@ -1,9 +1,11 @@
-import { Controller, Post, Get, Put, Delete, Body, Param, Res } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param, Res, UseGuards } from '@nestjs/common';
 import { PromotionService } from './promotions.service';
 import { CreatePromotionDto, UpdatePromotionDto } from './promotions.dto';
 import { Response } from 'express';
+import { AuthGuard } from 'src/guards';
 
 @Controller('promotions')
+@UseGuards(AuthGuard)
 export class PromotionController {
   constructor(private promotionService: PromotionService) {}
 
