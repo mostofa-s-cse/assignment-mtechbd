@@ -3,9 +3,9 @@ import { CreateOrderDto, UpdateOrderDto } from './orders.dto';
 import { Response } from 'express';
 import { OrderService } from './order.service';
 
-@Controller('orders') // Base route for all endpoints in this controller.
+@Controller('orders') 
 export class OrderController {
-  constructor(private orderService: OrderService) { } // Inject the OrderService.
+  constructor(private orderService: OrderService) { } 
 
   /**
    * Creates a new order.
@@ -15,8 +15,8 @@ export class OrderController {
    */
   @Post()
   async create(@Body() dto: CreateOrderDto, @Res() res: Response) {
-    const result = await this.orderService.createOrder(dto); // Create the order.
-    return res.status(result.status).json(result); // Return the response with the appropriate status.
+    const result = await this.orderService.createOrder(dto); 
+    return res.status(result.status).json(result); 
   }
 
   /**
@@ -26,8 +26,8 @@ export class OrderController {
    */
   @Get()
   async findAll(@Res() res: Response) {
-    const result = await this.orderService.getAllOrders(); // Fetch all orders.
-    return res.status(result.status).json(result); // Return the response with the appropriate status.
+    const result = await this.orderService.getAllOrders();
+    return res.status(result.status).json(result); 
   }
 
   /**
@@ -38,8 +38,8 @@ export class OrderController {
    */
   @Get(':id')
   async findOne(@Param('id') id: number, @Res() res: Response) {
-    const result = await this.orderService.getOrderById(+id); // Fetch the order by ID.
-    return res.status(result.status).json(result); // Return the response with the appropriate status.
+    const result = await this.orderService.getOrderById(+id);
+    return res.status(result.status).json(result); 
   }
 
   /**
@@ -55,8 +55,8 @@ export class OrderController {
     @Body() dto: UpdateOrderDto,
     @Res() res: Response,
   ) {
-    const result = await this.orderService.updateOrder(+id, dto); // Update the order.
-    return res.status(result.status).json(result); // Return the response with the appropriate status.
+    const result = await this.orderService.updateOrder(+id, dto); 
+    return res.status(result.status).json(result); 
   }
 
   /**
@@ -67,7 +67,7 @@ export class OrderController {
    */
   @Delete(':id')
   async remove(@Param('id') id: number, @Res() res: Response) {
-    const result = await this.orderService.deleteOrder(+id); // Delete the order.
-    return res.status(result.status).json(result); // Return the response with the appropriate status.
+    const result = await this.orderService.deleteOrder(+id); 
+    return res.status(result.status).json(result); 
   }
 }

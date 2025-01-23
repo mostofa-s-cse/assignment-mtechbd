@@ -12,117 +12,116 @@ export class OrderService {
     private errorLogger: ErrorLogger,
   ) { }
 
-/**
- * Calculates discounts for order items based on active promotions.
- * @param items - Array of order items.
- * @param promotions - Array of active promotions.
- * @returns An object containing subtotal, total discount, and grand total.
- */
-async calculateDiscounts(items: CreateOrderDto['items'], promotions: any[]) {
-  let subtotal = 0;
-  let totalDiscount = 0;
+  /**
+   * Calculates discounts for order items based on active promotions.
+   * @param items - Array of order items.
+   * @param promotions - Array of active promotions.
+   * @returns An object containing subtotal, total discount, and grand total.
+   */
+  async calculateDiscounts(items: CreateOrderDto['items'], promotions: any[]) {
+    let subtotal = 0;
+    let totalDiscount = 0;
 
-  for (const item of items) {
-    const product = await this.prisma.product.findUnique({ where: { id: item.productId } });
-    if (!product) continue;
+    for (const item of items) {
+      const product = await this.prisma.product.findUnique({ where: { id: item.productId } });
+      if (!product) continue;
 
-    const itemTotal = product.price * item.quantity;
-    subtotal += itemTotal;
+      const itemTotal = product.price * item.quantity;
+      subtotal += itemTotal;
 
-    for (const promotion of promotions) {
-      if (promotion.type === 'percentage') {
-        // Percentage discount
-        totalDiscount += itemTotal * (promotion.discountPercentage / 100);
-      } else if (promotion.type === 'fixed') {
-        // Fixed discount
-        totalDiscount += promotion.discountAmount * item.quantity;
-      } else if (promotion.type === 'weighted') {
-        // Weighted discount
-        const totalWeight = product.weight * item.quantity; // Total weight in the same unit as slabs (e.g., kg)
-        const slab = promotion.PromotionSlabs.find(
-          (s) => totalWeight >= s.minWeight && totalWeight <= s.maxWeight,
-        );
-        if (slab) {
-          // Calculate discount based on the total weight and discount per unit
-          totalDiscount += slab.discountPerUnit * totalWeight;
+      for (const promotion of promotions) {
+        if (promotion.type === 'percentage') {
+          // Percentage discount
+          totalDiscount += itemTotal * (promotion.discountPercentage / 100);
+        } else if (promotion.type === 'fixed') {
+          // Fixed discount
+          totalDiscount += promotion.discountAmount * item.quantity;
+        } else if (promotion.type === 'weighted') {
+          // Weighted discount
+          const totalWeight = product.weight * item.quantity; // Total weight in the same unit as slabs (e.g., kg).
+          const slab = promotion.PromotionSlabs.find(
+            (s) => totalWeight >= s.minWeight && totalWeight <= s.maxWeight,
+          );
+          if (slab) {
+            // Calculate discount based on the total weight and discount per unit
+            totalDiscount += slab.discountPerUnit * totalWeight;
+          }
         }
       }
     }
+
+    return { subtotal, totalDiscount, grandTotal: subtotal - totalDiscount };
   }
 
-  return { subtotal, totalDiscount, grandTotal: subtotal - totalDiscount };
-}
+  /**
+   * Creates a new order.
+   * @param dto - Data Transfer Object for creating an order.
+   * @returns The created order or an error response.
+   */
+  async createOrder(dto: CreateOrderDto) {
+    try {
+      const { items, ...orderData } = dto;
 
-/**
- * Creates a new order.
- * @param dto - Data Transfer Object for creating an order.
- * @returns The created order or an error response.
- */
-async createOrder(dto: CreateOrderDto) {
-  try {
-    const { items, ...orderData } = dto;
-
-    // Fetch active promotions
-    const now = new Date();
-    const promotions = await this.prisma.promotion.findMany({
-      where: {
-        isEnabled: true,
-        startDate: { lte: now },
-        endDate: { gte: now },
-      },
-      include: { PromotionSlabs: true },
-    });
-
-    // Calculate discounts
-    const { subtotal, totalDiscount, grandTotal } = await this.calculateDiscounts(items, promotions);
-
-    // Create the order
-    const createdOrder = await this.prisma.order.create({
-      data: {
-        ...orderData,
-        subtotal,
-        totalDiscount,
-        grandTotal,
-        OrderItems: {
-          create: items.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            weight: item.weight,
-            discount: item.discount,
-            totalPrice: item.totalPrice,
-          })),
+      // Fetch active promotions
+      const now = new Date();
+      const promotions = await this.prisma.promotion.findMany({
+        where: {
+          isEnabled: true,
+          startDate: { lte: now },
+          endDate: { gte: now },
         },
-      },
-      include: { OrderItems: true },
-    });
+        include: { PromotionSlabs: true },
+      });
 
-    // Log the action of creating an order
-    await this.actionLogger.logAction(
-      {
-        referenceId: createdOrder.id,
-        refereceType: 'ORDER_MANAGEMENT',
-        action: 'CREATE',
-        context: 'Order Service - createOrder',
-        description: `Order created successfully`,
-        additionalInfo: null,
-      },
-      null, // user ID, if applicable
-    );
+      // Calculate discounts
+      const { subtotal, totalDiscount, grandTotal } = await this.calculateDiscounts(items, promotions);
 
-    return {
-      status: 201,
-      message: 'Order created successfully',
-      data: createdOrder,
-    };
-  } catch (error) {
-    // Log the error and return an error response
-    return await this.errorLogger.errorlogger({
-      errorMessage: 'An error occurred while creating an order',
-      errorStack: error,
-      context: 'OrderService - createOrder',
-    });
+      // Create the order
+      const createdOrder = await this.prisma.order.create({
+        data: {
+          ...orderData,
+          subtotal,
+          totalDiscount,
+          grandTotal,
+          OrderItems: {
+            create: items.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              weight: item.weight,
+              discount: item.discount,
+              totalPrice: item.totalPrice,
+            })),
+          },
+        },
+        include: { OrderItems: true },
+      });
+
+      // Log the action of creating an order
+      await this.actionLogger.logAction(
+        {
+          referenceId: createdOrder.id,
+          refereceType: 'ORDER_MANAGEMENT',
+          action: 'CREATE',
+          context: 'Order Service - createOrder',
+          description: `Order created successfully`,
+          additionalInfo: null,
+        },
+        null,
+      );
+
+      return {
+        status: 201,
+        message: 'Order created successfully',
+        data: createdOrder,
+      };
+    } catch (error) {
+      return await this.errorLogger.errorlogger({
+        errorMessage: 'An error occurred while creating an order',
+        errorStack: error,
+        context: 'OrderService - createOrder',
+      });
+    }
   }
-}
 
   /**
    * Retrieves an order by its ID.
@@ -149,7 +148,6 @@ async createOrder(dto: CreateOrderDto) {
         data: order,
       };
     } catch (error) {
-      // Log the error and return an error response
       return await this.errorLogger.errorlogger({
         errorMessage: 'An error occurred while retrieving an order',
         errorStack: error,
@@ -174,7 +172,6 @@ async createOrder(dto: CreateOrderDto) {
         data: orders,
       };
     } catch (error) {
-      // Log the error and return an error response
       return await this.errorLogger.errorlogger({
         errorMessage: 'An error occurred while retrieving orders',
         errorStack: error,
@@ -204,7 +201,6 @@ async createOrder(dto: CreateOrderDto) {
         data: dto,
       });
 
-      // Log the action of updating an order
       await this.actionLogger.logAction(
         {
           referenceId: id,
@@ -214,7 +210,7 @@ async createOrder(dto: CreateOrderDto) {
           description: `Order updated successfully`,
           additionalInfo: null,
         },
-        null, // user ID, if applicable
+        null,
       );
 
       return {
@@ -223,7 +219,6 @@ async createOrder(dto: CreateOrderDto) {
         data: updatedOrder,
       };
     } catch (error) {
-      // Log the error and return an error response
       return await this.errorLogger.errorlogger({
         errorMessage: 'An error occurred while updating an order',
         errorStack: error,
@@ -249,7 +244,6 @@ async createOrder(dto: CreateOrderDto) {
 
       await this.prisma.order.delete({ where: { id } });
 
-      // Log the action of deleting an order
       await this.actionLogger.logAction(
         {
           referenceId: id,
@@ -259,7 +253,7 @@ async createOrder(dto: CreateOrderDto) {
           description: `Order deleted successfully`,
           additionalInfo: null,
         },
-        null, // user ID, if applicable
+        null,
       );
 
       return {
@@ -267,7 +261,6 @@ async createOrder(dto: CreateOrderDto) {
         message: 'Order deleted successfully',
       };
     } catch (error) {
-      // Log the error and return an error response
       return await this.errorLogger.errorlogger({
         errorMessage: 'An error occurred while deleting an order',
         errorStack: error,

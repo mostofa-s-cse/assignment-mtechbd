@@ -21,7 +21,6 @@ export class ProductsService {
     try {
       const product = await this.prisma.product.create({ data: dto });
 
-      // Log the action of creating a product
       await this.actionLogger.logAction(
         {
           referenceId: product.id,
@@ -31,7 +30,7 @@ export class ProductsService {
           description: `Product "${product.name}" created`,
           additionalInfo: null,
         },
-        null, // user ID, if applicable
+        null,
       );
 
       return {
@@ -40,7 +39,6 @@ export class ProductsService {
         data: product,
       };
     } catch (error) {
-      // Log the error and return an error response
       return await this.errorLogger.errorlogger({
         errorMessage: 'An error occurred while creating a product',
         errorStack: error,
@@ -63,7 +61,6 @@ export class ProductsService {
         data: products,
       };
     } catch (error) {
-      // Log the error and return an error response
       return await this.errorLogger.errorlogger({
         errorMessage: 'An error occurred while retrieving products',
         errorStack: error,
@@ -94,7 +91,6 @@ export class ProductsService {
         data: product,
       };
     } catch (error) {
-      // Log the error and return an error response
       return await this.errorLogger.errorlogger({
         errorMessage: 'An error occurred while retrieving a product',
         errorStack: error,
@@ -116,7 +112,6 @@ export class ProductsService {
         data: dto,
       });
 
-      // Log the action of updating a product
       await this.actionLogger.logAction(
         {
           referenceId: id,
@@ -126,7 +121,7 @@ export class ProductsService {
           description: `Product "${product.name}" updated`,
           additionalInfo: null,
         },
-        null, // user ID, if applicable
+        null,
       );
 
       return {
@@ -135,7 +130,6 @@ export class ProductsService {
         data: product,
       };
     } catch (error) {
-      // Log the error and return an error response
       return await this.errorLogger.errorlogger({
         errorMessage: 'An error occurred while updating a product',
         errorStack: error,
@@ -153,7 +147,6 @@ export class ProductsService {
     try {
       const product = await this.prisma.product.delete({ where: { id } });
 
-      // Log the action of deleting a product
       await this.actionLogger.logAction(
         {
           referenceId: id,
@@ -163,7 +156,7 @@ export class ProductsService {
           description: `Product "${product.name}" deleted`,
           additionalInfo: null,
         },
-        null, // user ID, if applicable
+        null,
       );
 
       return {
@@ -172,7 +165,6 @@ export class ProductsService {
         data: product,
       };
     } catch (error) {
-      // Log the error and return an error response
       return await this.errorLogger.errorlogger({
         errorMessage: 'An error occurred while deleting a product',
         errorStack: error,
@@ -193,7 +185,6 @@ export class ProductsService {
         data: { isEnabled },
       });
 
-      // Log the action of updating product status
       await this.actionLogger.logAction(
         {
           referenceId: id,
@@ -203,7 +194,7 @@ export class ProductsService {
           description: `Product status updated to "${isEnabled ? 'enabled' : 'disabled'}"`,
           additionalInfo: null,
         },
-        null, // user ID, if applicable
+        null,
       );
 
       return {
@@ -212,7 +203,6 @@ export class ProductsService {
         data: updatedProduct,
       };
     } catch (error) {
-      // Log the error and return an error response
       return await this.errorLogger.errorlogger({
         errorMessage: 'An error occurred while updating product status',
         errorStack: error,

@@ -24,7 +24,7 @@ export class PromotionService {
       const createdPromotion = await this.prisma.promotion.create({
         data: {
           ...promotionData,
-          discountValue: dto.discountValue, // Ensure this is correctly mapped
+          discountValue: dto.discountValue,
           PromotionSlabs: PromotionSlabs
             ? {
               create: PromotionSlabs,
@@ -34,7 +34,6 @@ export class PromotionService {
         include: { PromotionSlabs: true },
       });
 
-      // Log the action of creating a promotion
       await this.actionLogger.logAction(
         {
           referenceId: createdPromotion.id,
@@ -44,7 +43,7 @@ export class PromotionService {
           description: `Promotion "${createdPromotion.title}" created`,
           additionalInfo: null,
         },
-        null, // user ID, if applicable
+        null,
       );
 
       return {
@@ -53,7 +52,6 @@ export class PromotionService {
         data: createdPromotion,
       };
     } catch (error) {
-      // Log the error and return an error response
       return await this.errorLogger.errorlogger({
         errorMessage: 'An error occurred while creating a promotion',
         errorStack: error,
@@ -78,7 +76,6 @@ export class PromotionService {
         data: promotions,
       };
     } catch (error) {
-      // Log the error and return an error response
       return await this.errorLogger.errorlogger({
         errorMessage: 'An error occurred while retrieving promotions',
         errorStack: error,
@@ -112,7 +109,6 @@ export class PromotionService {
         data: promotion,
       };
     } catch (error) {
-      // Log the error and return an error response
       return await this.errorLogger.errorlogger({
         errorMessage: 'An error occurred while retrieving a promotion',
         errorStack: error,
@@ -145,15 +141,14 @@ export class PromotionService {
           ...promotionData,
           PromotionSlabs: PromotionSlabs
             ? {
-              deleteMany: {}, // Delete existing slabs
-              create: PromotionSlabs, // Create new slabs
+              deleteMany: {},
+              create: PromotionSlabs,
             }
             : undefined,
         },
         include: { PromotionSlabs: true },
       });
 
-      // Log the action of updating a promotion
       await this.actionLogger.logAction(
         {
           referenceId: id,
@@ -163,7 +158,7 @@ export class PromotionService {
           description: `Promotion "${updatedPromotion.title}" updated`,
           additionalInfo: null,
         },
-        null, // user ID, if applicable
+        null,
       );
 
       return {
@@ -172,7 +167,6 @@ export class PromotionService {
         data: updatedPromotion,
       };
     } catch (error) {
-      // Log the error and return an error response
       return await this.errorLogger.errorlogger({
         errorMessage: 'An error occurred while updating a promotion',
         errorStack: error,
@@ -198,7 +192,6 @@ export class PromotionService {
 
       await this.prisma.promotion.delete({ where: { id } });
 
-      // Log the action of deleting a promotion
       await this.actionLogger.logAction(
         {
           referenceId: id,
@@ -208,7 +201,7 @@ export class PromotionService {
           description: `Promotion "${existingPromotion.title}" deleted`,
           additionalInfo: null,
         },
-        null, // user ID, if applicable
+        null,
       );
 
       return {
@@ -216,7 +209,6 @@ export class PromotionService {
         message: 'Promotion deleted successfully',
       };
     } catch (error) {
-      // Log the error and return an error response
       return await this.errorLogger.errorlogger({
         errorMessage: 'An error occurred while deleting a promotion',
         errorStack: error,
