@@ -1,5 +1,6 @@
 import SignIn from "../pages/Auth/SignIn";
 import Dashboard from "../pages/Dashboard/Dashboard";
+import OrderManagement from "../pages/OrderManagement/OrderManagement";
 import ProductList from "../pages/Products/ProductList";
 import PromotionList from "../pages/Promotion/PromotionList";
 import * as urls from "./AppUrls";
@@ -30,6 +31,12 @@ const route = [
   {
     path: urls.PROMOTION,
     Element: PromotionList,
+    isIndexUrl: false,
+    isProtected: true,
+  },
+  {
+    path: urls.ORDER,
+    Element: OrderManagement,
     isIndexUrl: false,
     isProtected: true,
   },

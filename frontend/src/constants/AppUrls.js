@@ -5,3 +5,4 @@ export const SIGNIN = "/";
 export const DASHBOARD = "/dashboard";
 export const PRODUCTS = "/products";
 export const PROMOTION = "/promotions";
+export const ORDER = "/order";
