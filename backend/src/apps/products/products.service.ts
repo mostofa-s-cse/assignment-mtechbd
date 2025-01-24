@@ -10,16 +10,15 @@ export class ProductsService {
     private prisma: PrismaService,
     private actionLogger: ActionLogger,
     private errorLogger: ErrorLogger,
-  ) { }
+  ) {}
 
-  /**
-   * Creates a new product.
-   * @param dto - Data Transfer Object for creating a product.
-   * @returns The created product or an error response.
-   */
   async createProduct(dto: CreateProductDto) {
     try {
-      const product = await this.prisma.product.create({ data: dto });
+      const product = await this.prisma.product.create({
+        data: {
+          ...dto, 
+        },
+      });
 
       await this.actionLogger.logAction(
         {
@@ -47,10 +46,6 @@ export class ProductsService {
     }
   }
 
-  /**
-   * Retrieves all products.
-   * @returns A list of products or an error response.
-   */
   async getAllProducts() {
     try {
       const products = await this.prisma.product.findMany();
@@ -69,14 +64,11 @@ export class ProductsService {
     }
   }
 
-  /**
-   * Retrieves a product by its ID.
-   * @param id - The ID of the product to retrieve.
-   * @returns The product or an error response.
-   */
   async getProductById(id: number) {
     try {
-      const product = await this.prisma.product.findUnique({ where: { id } });
+      const product = await this.prisma.product.findUnique({
+        where: { id },
+      });
 
       if (!product) {
         return {
@@ -99,17 +91,13 @@ export class ProductsService {
     }
   }
 
-  /**
-   * Updates a product by its ID.
-   * @param id - The ID of the product to update.
-   * @param dto - Data Transfer Object for updating a product.
-   * @returns The updated product or an error response.
-   */
   async updateProduct(id: number, dto: UpdateProductDto) {
     try {
       const product = await this.prisma.product.update({
         where: { id },
-        data: dto,
+        data: {
+          ...dto, 
+        },
       });
 
       await this.actionLogger.logAction(
@@ -138,14 +126,11 @@ export class ProductsService {
     }
   }
 
-  /**
-   * Deletes a product by its ID.
-   * @param id - The ID of the product to delete.
-   * @returns The deleted product or an error response.
-   */
   async deleteProduct(id: number) {
     try {
-      const product = await this.prisma.product.delete({ where: { id } });
+      const product = await this.prisma.product.delete({
+        where: { id },
+      });
 
       await this.actionLogger.logAction(
         {
@@ -169,44 +154,6 @@ export class ProductsService {
         errorMessage: 'An error occurred while deleting a product',
         errorStack: error,
         context: 'ProductsService - deleteProduct',
-      });
-    }
-  }
-
-  /**
-   * Checks if a product is enabled (active).
-   * @param id - The ID of the product to check.
-   * @returns A boolean indicating whether the product is enabled or an error response.
-   */
-  async updateProductStatus(id: number, isEnabled: boolean) {
-    try {
-      const updatedProduct = await this.prisma.product.update({
-        where: { id },
-        data: { isEnabled },
-      });
-
-      await this.actionLogger.logAction(
-        {
-          referenceId: id,
-          refereceType: 'PRODUCT_MANAGEMENT',
-          action: 'UPDATE_STATUS',
-          context: 'Product Service - updateProductStatus',
-          description: `Product status updated to "${isEnabled ? 'enabled' : 'disabled'}"`,
-          additionalInfo: null,
-        },
-        null,
-      );
-
-      return {
-        status: 200,
-        message: 'Product status updated successfully',
-        data: updatedProduct,
-      };
-    } catch (error) {
-      return await this.errorLogger.errorlogger({
-        errorMessage: 'An error occurred while updating product status',
-        errorStack: error,
-        context: 'ProductsService - updateProductStatus',
       });
     }
   }

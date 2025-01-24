@@ -1,5 +1,23 @@
-import { IsNotEmpty, IsString, IsNumber, IsEmail, IsOptional, ValidateNested, ArrayNotEmpty, IsArray, Min } from 'class-validator';
+import { IsNotEmpty, IsString, IsEmail, IsOptional, ValidateNested, ArrayNotEmpty, IsArray, IsNumber, Min } from 'class-validator';
 import { Type } from 'class-transformer';
+
+class CustomerDto {
+  @IsNotEmpty()
+  @IsString()
+  name: string;
+
+  @IsNotEmpty()
+  @IsString()
+  phone: string; 
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;  
+
+  @IsOptional()
+  @IsString()
+  address?: string;
+}
 
 class OrderItemDto {
   @IsNotEmpty()
@@ -11,29 +29,25 @@ class OrderItemDto {
   @Min(1)
   quantity: number;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsNumber()
-  weight: number;
+  weight?: number;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsNumber()
-  discount: number;
+  discount?: number;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsNumber()
-  totalPrice: number;
+  totalPrice?: number;
 }
 
 export class CreateOrderDto {
-  @IsNotEmpty()
-  @IsString()
-  customerName: string;
+  @ValidateNested()
+  @Type(() => CustomerDto)
+  customer: CustomerDto;
 
-  @IsNotEmpty()
-  @IsEmail()
-  customerEmail: string;
-
-  @IsOptional() 
+  @IsOptional()
   @IsNumber()
   subtotal?: number;
 
@@ -41,7 +55,7 @@ export class CreateOrderDto {
   @IsNumber()
   totalDiscount?: number;
 
-  @IsOptional() 
+  @IsOptional()
   @IsNumber()
   grandTotal?: number;
 
@@ -51,32 +65,4 @@ export class CreateOrderDto {
   @ValidateNested({ each: true })
   @Type(() => OrderItemDto)
   items: OrderItemDto[];
-}
-
-export class UpdateOrderDto {
-  @IsOptional()
-  @IsString()
-  customerName?: string;
-
-  @IsOptional()
-  @IsEmail()
-  customerEmail?: string;
-
-  @IsOptional()
-  @IsNumber()
-  subtotal?: number;
-
-  @IsOptional()
-  @IsNumber()
-  totalDiscount?: number;
-
-  @IsOptional()
-  @IsNumber()
-  grandTotal?: number;
-
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => OrderItemDto)
-  items?: OrderItemDto[];
 }

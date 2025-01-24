@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { NotFoundException } from "@nestjs/common";
+import { CreateOrderDto } from "./orders.dto";
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/modules/prisma/prisma.service';
 import { ActionLogger } from 'utils/action-logger';
 import { ErrorLogger } from 'utils/error-logger';
-import { CreateOrderDto, UpdateOrderDto } from './orders.dto';
 
 @Injectable()
 export class OrderService {
@@ -12,15 +13,10 @@ export class OrderService {
     private errorLogger: ErrorLogger,
   ) { }
 
-  /**
-   * Calculates discounts for order items based on active promotions.
-   * @param items - Array of order items.
-   * @param promotions - Array of active promotions.
-   * @returns An object containing subtotal, total discount, and grand total.
-   */
-  async calculateDiscounts(items: CreateOrderDto['items'], promotions: any[]) {
+  private async calculateDiscounts(items: CreateOrderDto['items']) {
     let subtotal = 0;
     let totalDiscount = 0;
+    const currentDate = new Date();
 
     for (const item of items) {
       const product = await this.prisma.product.findUnique({ where: { id: item.productId } });
@@ -29,22 +25,39 @@ export class OrderService {
       const itemTotal = product.price * item.quantity;
       subtotal += itemTotal;
 
+      // Get all active promotions for the product
+      const promotions = await this.prisma.promotion.findMany({
+        where: {
+          products: {
+            some: {
+              id: product.id,
+            },
+          },
+          isEnabled: true,
+          startDate: { lte: currentDate },
+          endDate: { gte: currentDate },
+        },
+        include: { promotionSlabs: true },
+      });
+
       for (const promotion of promotions) {
-        if (promotion.type === 'percentage') {
-          // Percentage discount
-          totalDiscount += itemTotal * (promotion.discountPercentage / 100);
-        } else if (promotion.type === 'fixed') {
-          // Fixed discount
-          totalDiscount += promotion.discountAmount * item.quantity;
-        } else if (promotion.type === 'weighted') {
-          // Weighted discount
-          const totalWeight = product.weight * item.quantity; // Total weight in the same unit as slabs (e.g., kg).
-          const slab = promotion.PromotionSlabs.find(
-            (s) => totalWeight >= s.minWeight && totalWeight <= s.maxWeight,
+        // Apply percentage discounts
+        if (promotion.type === 'PERCENTAGE') {
+          totalDiscount += itemTotal * (promotion.discountValue / 100);
+        }
+        // Apply fixed discounts
+        else if (promotion.type === 'FIXED') {
+          totalDiscount += promotion.discountValue * item.quantity;
+        }
+        // Apply weighted discounts
+        else if (promotion.type === 'WEIGHTED' && promotion.promotionSlabs.length > 0) {
+          const totalWeightInKg = product.weight * item.quantity;
+          const slab = promotion.promotionSlabs.find(
+            (s) => totalWeightInKg >= s.minWeight && totalWeightInKg <= s.maxWeight,
           );
           if (slab) {
-            // Calculate discount based on the total weight and discount per unit
-            totalDiscount += slab.discountPerUnit * totalWeight;
+            const applicableUnits = Math.floor(totalWeightInKg / 0.5);
+            totalDiscount += slab.discountPerUnit * applicableUnits;
           }
         }
       }
@@ -53,219 +66,128 @@ export class OrderService {
     return { subtotal, totalDiscount, grandTotal: subtotal - totalDiscount };
   }
 
-  /**
-   * Creates a new order.
-   * @param dto - Data Transfer Object for creating an order.
-   * @returns The created order or an error response.
-   */
   async createOrder(dto: CreateOrderDto) {
     try {
-      const { items, ...orderData } = dto;
+      const { items, customer } = dto;
 
-      // Fetch active promotions
-      const now = new Date();
-      const promotions = await this.prisma.promotion.findMany({
-        where: {
-          isEnabled: true,
-          startDate: { lte: now },
-          endDate: { gte: now },
-        },
-        include: { PromotionSlabs: true },
+      const existingCustomer = await this.prisma.customer.upsert({
+        where: { phone: customer.phone },
+        update: { name: customer.name, phone: customer.phone, address: customer.address },
+        create: customer,
       });
 
-      // Calculate discounts
-      const { subtotal, totalDiscount, grandTotal } = await this.calculateDiscounts(items, promotions);
+      const { subtotal, totalDiscount, grandTotal } = await this.calculateDiscounts(items);
 
-      // Create the order
       const createdOrder = await this.prisma.order.create({
         data: {
-          ...orderData,
           subtotal,
           totalDiscount,
           grandTotal,
-          OrderItems: {
+          customerId: existingCustomer.id,
+          orderItems: {
             create: items.map((item) => ({
               productId: item.productId,
               quantity: item.quantity,
-              weight: item.weight,
-              discount: item.discount,
-              totalPrice: item.totalPrice,
+              weight: item.weight || 0,
+              discount: item.discount || 0,
+              totalPrice: item.totalPrice || 0,
             })),
           },
         },
-        include: { OrderItems: true },
+        include: { orderItems: true },
       });
 
-      // Log the action of creating an order
       await this.actionLogger.logAction(
         {
           referenceId: createdOrder.id,
           refereceType: 'ORDER_MANAGEMENT',
           action: 'CREATE',
-          context: 'Order Service - createOrder',
-          description: `Order created successfully`,
-          additionalInfo: null,
+          context: 'OrderService - createOrder',
+          description: 'Order created successfully',
+          additionalInfo: createdOrder,
         },
         null,
       );
 
-      return {
-        status: 201,
-        message: 'Order created successfully',
-        data: createdOrder,
-      };
+      return { status: 201, message: 'Order created successfully', data: createdOrder };
     } catch (error) {
-      return await this.errorLogger.errorlogger({
-        errorMessage: 'An error occurred while creating an order',
+      return this.errorLogger.errorlogger({
+        errorMessage: 'Error creating order',
         errorStack: error,
         context: 'OrderService - createOrder',
       });
     }
   }
 
-  /**
-   * Retrieves an order by its ID.
-   * @param id - The ID of the order to retrieve.
-   * @returns The order or an error response.
-   */
   async getOrderById(id: number) {
-    try {
-      const order = await this.prisma.order.findUnique({
-        where: { id },
-        include: { OrderItems: true },
-      });
-
-      if (!order) {
-        return {
-          status: 404,
-          message: 'Order not found',
-        };
-      }
-
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: { orderItems: true },
+    });
+    if (!order) {
       return {
-        status: 200,
-        message: 'Order retrieved successfully',
-        data: order,
+        status: 404,
+        message: "Order not found"
       };
-    } catch (error) {
-      return await this.errorLogger.errorlogger({
-        errorMessage: 'An error occurred while retrieving an order',
-        errorStack: error,
-        context: 'OrderService - getOrderById',
-      });
     }
+    return { status: 200, message: 'Order retrieved successfully', data: order };
   }
 
-  /**
-   * Retrieves all orders.
-   * @returns A list of orders or an error response.
-   */
+
+  async getCustomer(phone: string) {
+    console.log('phone', phone);
+
+    const customer = await this.prisma.customer.findUnique({
+      where: { phone },
+      select: {
+        id: true,
+        phone: true,
+        email: true,
+        address: true,
+      },
+    });
+
+    if (!customer) {
+      return {
+        status: 404,
+        message: "Customer not found",
+      };
+    }
+    return { status: 200, message: 'Customer retrieved successfully', data: customer };
+  }
+
+
+
   async getAllOrders() {
-    try {
-      const orders = await this.prisma.order.findMany({
-        include: { OrderItems: true },
-      });
-
-      return {
-        status: 200,
-        message: 'Orders retrieved successfully',
-        data: orders,
-      };
-    } catch (error) {
-      return await this.errorLogger.errorlogger({
-        errorMessage: 'An error occurred while retrieving orders',
-        errorStack: error,
-        context: 'OrderService - getAllOrders',
-      });
-    }
+    const orders = await this.prisma.order.findMany({
+      include: { orderItems: true },
+    });
+    return { status: 200, message: 'Customer retrieved successfully', data: orders };
   }
 
-  /**
-   * Updates an order by its ID.
-   * @param id - The ID of the order to update.
-   * @param dto - Data Transfer Object for updating an order.
-   * @returns The updated order or an error response.
-   */
-  async updateOrder(id: number, dto: UpdateOrderDto) {
-    try {
-      const existingOrder = await this.prisma.order.findUnique({ where: { id } });
-      if (!existingOrder) {
-        return {
-          status: 404,
-          message: 'Order not found',
-        };
-      }
-
-      const updatedOrder = await this.prisma.order.update({
-        where: { id },
-        data: dto,
-      });
-
-      await this.actionLogger.logAction(
-        {
-          referenceId: id,
-          refereceType: 'ORDER_MANAGEMENT',
-          action: 'UPDATE',
-          context: 'Order Service - updateOrder',
-          description: `Order updated successfully`,
-          additionalInfo: null,
-        },
-        null,
-      );
-
-      return {
-        status: 200,
-        message: 'Order updated successfully',
-        data: updatedOrder,
-      };
-    } catch (error) {
-      return await this.errorLogger.errorlogger({
-        errorMessage: 'An error occurred while updating an order',
-        errorStack: error,
-        context: 'OrderService - updateOrder',
-      });
-    }
-  }
-
-  /**
-   * Deletes an order by its ID.
-   * @param id - The ID of the order to delete.
-   * @returns A success message or an error response.
-   */
   async deleteOrder(id: number) {
-    try {
-      const existingOrder = await this.prisma.order.findUnique({ where: { id } });
-      if (!existingOrder) {
-        return {
-          status: 404,
-          message: 'Order not found',
-        };
-      }
-
-      await this.prisma.order.delete({ where: { id } });
-
-      await this.actionLogger.logAction(
-        {
-          referenceId: id,
-          refereceType: 'ORDER_MANAGEMENT',
-          action: 'DELETE',
-          context: 'Order Service - deleteOrder',
-          description: `Order deleted successfully`,
-          additionalInfo: null,
-        },
-        null,
-      );
-
+    const existingOrder = await this.prisma.order.findUnique({ where: { id } });
+    if (!existingOrder) {
       return {
-        status: 200,
-        message: 'Order deleted successfully',
+        status: 404,
+        message: "Order not found"
       };
-    } catch (error) {
-      return await this.errorLogger.errorlogger({
-        errorMessage: 'An error occurred while deleting an order',
-        errorStack: error,
-        context: 'OrderService - deleteOrder',
-      });
     }
+
+    await this.prisma.order.delete({ where: { id } });
+
+    await this.actionLogger.logAction(
+      {
+        referenceId: id,
+        refereceType: 'ORDER_MANAGEMENT',
+        action: 'DELETE',
+        context: 'OrderService - deleteOrder',
+        description: 'Order deleted successfully',
+        additionalInfo: { deletedOrderId: id },
+      },
+      null,
+    );
+
+    return { status: 200, message: 'Order deleted successfully' };
   }
 }

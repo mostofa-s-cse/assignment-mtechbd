@@ -9,8 +9,11 @@ import {
   ValidateNested,
   ArrayNotEmpty,
   ValidateIf,
+  IsEnum,
+  IsInt,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { PromotionType } from '@prisma/client'; 
 
 class PromotionSlabDto {
   @IsNotEmpty()
@@ -32,8 +35,8 @@ export class CreatePromotionDto {
   title: string;
 
   @IsNotEmpty()
-  @IsString()
-  type: string; // "percentage" | "fixed" | "weighted"
+  @IsEnum(PromotionType)
+  type: PromotionType; 
 
   @IsNotEmpty()
   @IsDateString()
@@ -49,14 +52,18 @@ export class CreatePromotionDto {
 
   @IsOptional()
   @IsNumber()
-  discountValue?: number; // Use discountValue instead of discountPercentage
+  discountValue?: number;
 
-  @ValidateIf((o) => o.type === 'weighted')
+  @ValidateIf((o) => o.type === PromotionType.WEIGHTED)
   @IsArray()
   @ArrayNotEmpty()
   @ValidateNested({ each: true })
   @Type(() => PromotionSlabDto)
-  PromotionSlabs?: PromotionSlabDto[]; // Required for weighted promotions
+  PromotionSlabs?: PromotionSlabDto[];
+
+  @IsArray()
+  @IsNumber({}, { each: true })
+  products: number[];
 }
 
 export class UpdatePromotionDto {
@@ -65,8 +72,8 @@ export class UpdatePromotionDto {
   title?: string;
 
   @IsOptional()
-  @IsString()
-  type?: string;
+  @IsEnum(PromotionType) 
+  type?: PromotionType; 
 
   @IsOptional()
   @IsDateString()
@@ -82,11 +89,16 @@ export class UpdatePromotionDto {
 
   @IsOptional()
   @IsNumber()
-  discountValue?: number; // Use discountValue instead of discountPercentage
+  discountValue?: number;
 
-  @ValidateIf((o) => o.type === 'weighted')
+  @ValidateIf((o) => o.type === PromotionType.WEIGHTED)
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => PromotionSlabDto)
-  PromotionSlabs?: PromotionSlabDto[]; // For weighted promotions
+  PromotionSlabs?: PromotionSlabDto[];
+
+  @IsOptional()
+  @IsArray()
+  @IsNumber({}, { each: true })
+  products?: number[];
 }
