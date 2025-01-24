@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import appRoutes from "../constants/AppRoutes";
 import ProtectedPage from "../components/Layouts/ProtectedPage";
 import NoPageFound from "../components/Global/NoPageFound";
+import Layout from "../components/Layouts/Layout";
 
 const RouteWrapper = () => {
   return (
@@ -21,9 +22,11 @@ const RouteWrapper = () => {
                   index={isIndexUrl}
                   path={path}
                   element={
-                    <ProtectedPage>
-                      <Element />
-                    </ProtectedPage>
+                    <Layout>
+                      <ProtectedPage>
+                        <Element />
+                      </ProtectedPage>
+                    </Layout>
                   }
                 />
               </Route>

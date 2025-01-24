@@ -1,3 +1,4 @@
+import Layout from "../components/Layouts/Layout";
 import QueryWrapper from "./QueryWrapper";
 import ReduxWrapper from "./ReduxWrapper";
 import RouteWrapper from "./RouteWrapper";
