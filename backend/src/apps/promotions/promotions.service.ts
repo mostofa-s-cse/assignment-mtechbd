@@ -13,26 +13,49 @@ export class PromotionsService {
     private errorLogger: ErrorLogger,
   ) {}
 
+  /**
+   * Creates a new promotion.
+   * @param dto - The data to create a new promotion.
+   * @returns The created promotion or an error response.
+   */
   async createPromotion(dto: CreatePromotionDto) {
     try {
       const { PromotionSlabs, products, ...promotionData } = dto;
-  
+
       // Validate that the products exist
       const existingProducts = await this.prisma.product.findMany({
         where: { id: { in: products } },
       });
-  
+
       const missingProducts = products.filter(
         (id) => !existingProducts.some((product) => product.id === id),
       );
-  
+
       if (missingProducts.length > 0) {
         return {
           status: 400,
           message: `The following product IDs do not exist: ${missingProducts.join(', ')}`,
         };
       }
-  
+
+      // Check if any product is already assigned to another promotion
+      const assignedProducts = await this.prisma.product.findMany({
+        where: {
+          id: { in: products },
+          promotions: { some: {} }, // Checks if the product is already associated with any promotion
+        },
+        include: { promotions: true },
+      });
+
+      if (assignedProducts.length > 0) {
+        const alreadyAssignedProductIds = assignedProducts.map((product) => product.id);
+        return {
+          status: 400,
+          message: `The following products are already assigned to another promotion: ${alreadyAssignedProductIds.join(', ')}`,
+        };
+      }
+
+      // Create the promotion
       const createdPromotion = await this.prisma.promotion.create({
         data: {
           ...promotionData,
@@ -49,7 +72,8 @@ export class PromotionsService {
         },
         include: { promotionSlabs: true, products: true },
       });
-  
+
+      // Log the action
       await this.actionLogger.logAction(
         {
           referenceId: createdPromotion.id,
@@ -61,7 +85,7 @@ export class PromotionsService {
         },
         null,
       );
-  
+
       return {
         status: 201,
         message: 'Promotion created successfully',
@@ -75,8 +99,11 @@ export class PromotionsService {
       });
     }
   }
-  
 
+  /**
+   * Retrieves all promotions.
+   * @returns A list of promotions or an error response.
+   */
   async getAllPromotions() {
     try {
       const promotions = await this.prisma.promotion.findMany({
@@ -97,7 +124,11 @@ export class PromotionsService {
     }
   }
 
- 
+  /**
+   * Retrieves a promotion by its ID.
+   * @param id - The ID of the promotion to retrieve.
+   * @returns The promotion or an error response.
+   */
   async getPromotionById(id: number) {
     try {
       const promotion = await this.prisma.promotion.findUnique({
@@ -126,56 +157,67 @@ export class PromotionsService {
     }
   }
 
+  /**
+   * Updates the status of a promotion.
+   * @param id - The ID of the promotion to update.
+   * @param isEnabled - The status to set for the promotion (enabled or disabled).
+   * @returns The updated promotion or an error response.
+   */
+  async updatePromotionStatus(id: number, isEnabled: boolean) {
+    try {
+      const updatedPromotion = await this.prisma.promotion.update({
+        where: { id },
+        data: { isEnabled },
+      });
+
+      await this.actionLogger.logAction(
+        {
+          referenceId: id,
+          refereceType: 'PROMOTION_MANAGEMENT',
+          action: 'UPDATE_STATUS',
+          context: 'Promotion Service - updatePromotionStatus',
+          description: `Promotion status updated to "${isEnabled ? 'enabled' : 'disabled'}"`,
+          additionalInfo: null,
+        },
+        null,
+      );
+
+      return {
+        status: 200,
+        message: 'Promotion status updated successfully',
+        data: updatedPromotion,
+      };
+    } catch (error) {
+      return await this.errorLogger.errorlogger({
+        errorMessage: 'An error occurred while updating promotion status',
+        errorStack: error,
+        context: 'PromotionService - updatePromotionStatus',
+      });
+    }
+  }
+
+  /**
+   * Updates an existing promotion.
+   * @param id - The ID of the promotion to update.
+   * @param dto - The data to update the promotion with.
+   * @returns The updated promotion or an error response.
+   */
   async updatePromotion(id: number, dto: UpdatePromotionDto) {
     try {
       const { PromotionSlabs, products, ...promotionData } = dto;
-  
-      const existingPromotion = await this.prisma.promotion.findUnique({
-        where: { id },
-        include: { products: true, promotionSlabs: true },
-      });
-  
-      if (!existingPromotion) {
-        return {
-          status: 404,
-          message: `Promotion with ID ${id} not found`,
-        };
-      }
-  
-      const existingProducts = await this.prisma.product.findMany({
-        where: { id: { in: products } },
-      });
-  
-      const missingProducts = products.filter(
-        (id) => !existingProducts.some((product) => product.id === id),
-      );
-  
-      if (missingProducts.length > 0) {
-        return {
-          status: 400,
-          message: `The following product IDs do not exist: ${missingProducts.join(', ')}`,
-        };
-      }
-  
+
       const updatedPromotion = await this.prisma.promotion.update({
-        where: { id },
+        where: { id }, // Locate the promotion by its ID.
         data: {
-          ...promotionData,
-          type: dto.type as PromotionType,
-          discountValue: dto.discountValue,
-          promotionSlabs: PromotionSlabs
-            ? {
-                deleteMany: {}, 
-                create: PromotionSlabs, 
-              }
-            : undefined,
-          products: {
-            set: products.map((id) => ({ id })),
-          },
+          title: dto.title, // Update the title of the promotion.
+          startDate: dto.startDate, // Update the start date of the promotion.
+          endDate: dto.endDate, // Update the end date of the promotion.
         },
-        include: { promotionSlabs: true, products: true },
+        include: { promotionSlabs: true, products: true }, // Include related slabs and products in the result.
       });
-  
+      
+
+      // Log the action
       await this.actionLogger.logAction(
         {
           referenceId: updatedPromotion.id,
@@ -187,7 +229,7 @@ export class PromotionsService {
         },
         null,
       );
-  
+
       return {
         status: 200,
         message: 'Promotion updated successfully',
@@ -201,9 +243,12 @@ export class PromotionsService {
       });
     }
   }
-  
-  
 
+  /**
+   * Deletes a promotion by its ID.
+   * @param id - The ID of the promotion to delete.
+   * @returns The deleted promotion or an error response.
+   */
   async deletePromotion(id: number) {
     try {
       const promotion = await this.prisma.promotion.delete({
@@ -213,7 +258,7 @@ export class PromotionsService {
 
       await this.actionLogger.logAction(
         {
-          referenceId: id,
+          referenceId: promotion.id,
           refereceType: 'PROMOTION_MANAGEMENT',
           action: 'DELETE',
           context: 'Promotion Service - deletePromotion',
@@ -230,7 +275,7 @@ export class PromotionsService {
       };
     } catch (error) {
       return await this.errorLogger.errorlogger({
-        errorMessage: 'An error occurred while deleting a promotion',
+        errorMessage: 'An error occurred while deleting the promotion',
         errorStack: error,
         context: 'PromotionService - deletePromotion',
       });

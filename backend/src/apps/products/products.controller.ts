@@ -1,36 +1,90 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param, Res } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto, UpdateProductDto } from './products.dto';
+import { Response } from 'express';
 
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(private productsService: ProductsService) { }
 
+  /**
+   * Creates a new product.
+   * @param dto - Data Transfer Object for creating a product.
+   * @param res - Express response object.
+   * @returns The created product or an error response.
+   */
   @Post()
-  async createProduct(@Body() createProductDto: CreateProductDto) {
-    return await this.productsService.createProduct(createProductDto);
+  async create(@Body() dto: CreateProductDto, @Res() res: Response) {
+    const result = await this.productsService.createProduct(dto);
+    return res.status(result.status).json(result);
   }
 
+  /**
+   * Retrieves all products.
+   * @param res - Express response object.
+   * @returns A list of products or an error response.
+   */
   @Get()
-  async getAllProducts() {
-    return await this.productsService.getAllProducts();
+  async findAll(@Res() res: Response) {
+    const result = await this.productsService.getAllProducts();
+    return res.status(result.status).json(result);
   }
 
+  /**
+   * Retrieves a product by its ID.
+   * @param id - The ID of the product to retrieve.
+   * @param res - Express response object.
+   * @returns The product or an error response.
+   */
   @Get(':id')
-  async getProductById(@Param('id', ParseIntPipe) id: number) {
-    return await this.productsService.getProductById(id);
+  async findOne(@Param('id') id: number, @Res() res: Response) {
+    const result = await this.productsService.getProductById(+id);
+    return res.status(result.status).json(result);
   }
 
+    /**
+   * Updates the status of a product.
+   * @param id - The ID of the product to update.
+   * @param isEnabled - The new status of the product.
+   * @param res - Express response object.
+   * @returns The updated product or an error response.
+   */
+    @Put(':id/isEnabled')
+    async updateProductStatus(
+      @Param('id') id: number,
+      @Body('isEnabled') isEnabled: boolean,
+      @Res() res: Response,
+    ) {
+      const result = await this.productsService.updateProductStatus(+id, isEnabled);
+      return res.status(result.status).json(result);
+    }
+
+  /**
+   * Updates a product by its ID.
+   * @param id - The ID of the product to update.
+   * @param dto - Data Transfer Object for updating a product.
+   * @param res - Express response object.
+   * @returns The updated product or an error response.
+   */
   @Put(':id')
-  async updateProduct(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() updateProductDto: UpdateProductDto,
+  async update(
+    @Param('id') id: number,
+    @Body() dto: UpdateProductDto,
+    @Res() res: Response,
   ) {
-    return await this.productsService.updateProduct(id, updateProductDto);
+    const result = await this.productsService.updateProduct(+id, dto);
+    return res.status(result.status).json(result);
   }
 
+  /**
+   * Deletes a product by its ID.
+   * @param id - The ID of the product to delete.
+   * @param res - Express response object.
+   * @returns The deleted product or an error response.
+   */
   @Delete(':id')
-  async deleteProduct(@Param('id', ParseIntPipe) id: number) {
-    return await this.productsService.deleteProduct(id);
+  async remove(@Param('id') id: number, @Res() res: Response) {
+    const result = await this.productsService.deleteProduct(+id);
+    return res.status(result.status).json(result);
   }
 }
