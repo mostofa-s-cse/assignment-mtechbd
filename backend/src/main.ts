@@ -10,12 +10,19 @@ async function bootstrap() {
 
   app.useGlobalPipes(
     new ValidationPipe({
-      // adds validation to all routes
-      whitelist: true, // strips away any properties that are not present in the DTO
+      whitelist: true, 
     }),
   );
+
   app.setGlobalPrefix('api/v1');
-  app.enableCors();
+
+  // Customize CORS settings
+  app.enableCors({
+    origin: 'http://localhost:3000', // Allow requests from your frontend
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE', // Allowed methods
+    credentials: true, // Allow credentials (cookies, authorization headers, etc.)
+  });
+
   await app.listen(PORT).then(() => {
     console.log(`
           ####################################
