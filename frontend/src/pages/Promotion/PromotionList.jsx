@@ -11,15 +11,15 @@ const PromotionList = () => {
         title: '',
         startDate: '',
         endDate: '',
-        type: 'PERCENTAGE', // Default value
-        discountValue: '0', // Default to 0
+        type: 'PERCENTAGE', 
+        discountValue: '0', 
         isEnabled: true,
-        products: [], // Initialize products as an empty array
-        slabs: [], // Initialize slabs as an empty array
+        products: [], 
+        slabs: [], 
     });
 
     useEffect(() => {
-        fetchPromotions(); // Fetch promotions when the component mounts
+        fetchPromotions(); 
     }, [fetchPromotions]);
 
     const [products, setProducts] = useState([]);
@@ -29,7 +29,7 @@ const PromotionList = () => {
             try {
                 const response = await authClient.get('/products');
                 if (response.status === 200) {
-                    setProducts(response.data.data); // Assuming the data is in response.data.data
+                    setProducts(response.data.data); 
                 }
             } catch (error) {
                 console.error('Failed to fetch products:', error);
@@ -40,19 +40,19 @@ const PromotionList = () => {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        const newValue = name === 'discountValue' ? Math.max(0, parseFloat(value)) : value; // Prevent negative values
+        const newValue = name === 'discountValue' ? Math.max(0, parseFloat(value)) : value; 
         setFormData({ ...formData, [name]: newValue });
     };
 
     const handleProductChange = (e) => {
-        const selectedProducts = Array.from(e.target.selectedOptions, (option) => parseInt(option.value, 10)); // Convert to number
+        const selectedProducts = Array.from(e.target.selectedOptions, (option) => parseInt(option.value, 10)); 
         setFormData({ ...formData, products: selectedProducts });
     };
 
     const handleSlabChange = (index, e) => {
         const { name, value } = e.target;
         const newSlabs = [...formData.slabs];
-        newSlabs[index][name] = parseFloat(value); // Convert to number
+        newSlabs[index][name] = parseFloat(value); 
         setFormData({ ...formData, slabs: newSlabs });
     };
 
@@ -70,30 +70,27 @@ const PromotionList = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Check if startDate and endDate are valid
         const startDateString = formData.startDate;
         const endDateString = formData.endDate;
 
-        // Validate the date strings
         if (!startDateString || !endDateString) {
             console.error("Start date and end date must be provided.");
-            return; // Prevent submission if dates are invalid
+            return; 
         }
 
         const startDate = new Date(startDateString);
         const endDate = new Date(endDateString);
 
-        // Check if the dates are valid
         if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
             console.error("Invalid date format.");
-            return; // Prevent submission if dates are invalid
+            return; 
         }
 
         const promotionData = {
             title: formData.title,
             type: formData.type,
-            startDate: startDate.toISOString(), // Use the formatted date
-            endDate: endDate.toISOString(),     // Use the formatted date
+            startDate: startDate.toISOString(), 
+            endDate: endDate.toISOString(),     
             isEnabled: formData.isEnabled,
             products: formData.products,
             PromotionSlabs: formData.slabs.map(slab => ({
@@ -112,7 +109,7 @@ const PromotionList = () => {
         }
 
         setFormData({ title: '', startDate: '', endDate: '', type: 'PERCENTAGE', discountValue: '0', isEnabled: true, products: [], slabs: [] }); // Reset form
-        fetchPromotions(); // Fetch promotions after creating or editing
+        fetchPromotions(); 
     };
 
     const handleEditClick = (promotion) => {
@@ -125,19 +122,19 @@ const PromotionList = () => {
             type: promotion.type,
             discountValue: promotion.discountValue,
             isEnabled: promotion.isEnabled,
-            products: promotion.products, // Set products from the promotion
-            slabs: promotion.promotionSlabs || [], // Set slabs from the promotion
+            products: promotion.products,
+            slabs: promotion.promotionSlabs || [], 
         });
     };
 
     const handleToggleClick = async (promotionId) => {
         await togglePromotion(promotionId);
-        fetchPromotions(); // Fetch promotions after toggling
+        fetchPromotions(); 
     };
 
     const handleDeleteClick = async (promotionId) => {
         await deletePromotion(promotionId);
-        fetchPromotions(); // Fetch promotions after deleting
+        fetchPromotions(); 
     };
 
     return (
@@ -197,8 +194,7 @@ const PromotionList = () => {
                             value={formData.discountValue}
                             onChange={handleInputChange}
                             className="border p-2 mr-2"
-                            // Prevent negative values
-                            required={formData.type === 'PERCENTAGE' || formData.type === 'FIXED'} // Only required for PERCENTAGE and FIXED types
+                            required={formData.type === 'PERCENTAGE' || formData.type === 'FIXED'}
                         />
                         <label htmlFor="">Product select</label>
                         <select
@@ -226,7 +222,7 @@ const PromotionList = () => {
                     {isEditing ? 'Update Promotion ' : 'Add Promotion'}
                 </button>
             </form>
-            {formData.type === 'WEIGHTED' && ( // Only show slabs if type is WEIGHTED
+            {formData.type === 'WEIGHTED' && ( 
                 <>
                     {isEditing ? null : (<>
                         <table className="min-w-full border mb-4">
@@ -300,11 +296,9 @@ const PromotionList = () => {
                 </thead>
                 <tbody>
                     {promotions.map((promotion) => {
-                        // Create Date objects for startDate and endDate
                         const startDate = new Date(promotion.startDate);
                         const endDate = new Date(promotion.endDate);
 
-                        // Check if the dates are valid
                         const isStartDateValid = !isNaN(startDate.getTime());
                         const isEndDateValid = !isNaN(endDate.getTime());
 

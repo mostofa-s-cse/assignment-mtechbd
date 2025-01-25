@@ -9,10 +9,18 @@ const orderSlice = createSlice({
   initialState,
   reducers: {
     setOrders: (state, action) => {
-      state.orders = action.payload; // Set the orders from the API response
+      if (Array.isArray(action.payload)) {
+        state.orders = action.payload; // Set the orders from the API response
+      } else {
+        console.error('Expected an array of orders, but got:', action.payload);
+      }
     },
     addOrder: (state, action) => {
-      state.orders.push(action.payload); // Add a new order to the list
+      if (Array.isArray(state.orders)) {
+        state.orders.push(action.payload); // Add a new order to the list
+      } else {
+        console.error('state.orders is not an array:', state.orders);
+      }
     },
     updateOrder: (state, action) => {
       const index = state.orders.findIndex((order) => order.id === action.payload.id);

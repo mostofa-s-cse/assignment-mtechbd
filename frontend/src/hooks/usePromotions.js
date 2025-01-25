@@ -1,6 +1,5 @@
-// src/hooks/usePromotions.js
 import { useDispatch, useSelector } from 'react-redux';
-import { promotionActions } from '../store/reducers/promotionSlice'; // Adjust the path as necessary
+import { promotionActions } from '../store/reducers/promotionSlice'; 
 import { authClient } from '../constants/axiosInstance';
 import { useCallback } from 'react';
 
@@ -12,7 +11,7 @@ export const usePromotions = () => {
         try {
             const response = await authClient.get('/promotions');
             if (response.status === 200) {
-                dispatch(promotionActions.setPromotions(response.data.data)); // Use the 'data' array from the response
+                dispatch(promotionActions.setPromotions(response.data.data)); 
             }
         } catch (error) {
             console.error('Failed to fetch promotions:', error);
@@ -22,7 +21,7 @@ export const usePromotions = () => {
     const createPromotion = async (promotionData) => {
         try {
             const response = await authClient.post('/promotions', promotionData);
-            dispatch(promotionActions.addPromotion(response.data)); // Assuming the response contains the created promotion
+            dispatch(promotionActions.addPromotion(response.data)); 
         } catch (error) {
             alert('Failed to create promotion:', error);
             console.log('Failed to create promotion:', error);
@@ -31,9 +30,9 @@ export const usePromotions = () => {
 
     const editPromotion = async (promotionId, updatedData) => {
         try {
-            const { title, startDate, endDate } = updatedData; // Extract specific data
+            const { title, startDate, endDate } = updatedData; 
             const response = await authClient.put(`/promotions/${promotionId}`, {title:title,startDate:startDate,endDate:endDate});
-            dispatch(promotionActions.updatePromotion(response.data)); // Assuming the response contains the updated promotion
+            dispatch(promotionActions.updatePromotion(response.data)); 
         } catch (error) {
             console.error('Failed to edit promotion:', error);
         }
@@ -45,7 +44,7 @@ export const usePromotions = () => {
             const response = await authClient.put(`/promotions/${promotionId}/isEnabled`, {
                 isEnabled: !promotion.isEnabled,
             });
-            dispatch(promotionActions.updatePromotion(response.data)); // Assuming the response contains the updated promotion
+            dispatch(promotionActions.updatePromotion(response.data)); 
         } catch (error) {
             console.error('Failed to toggle promotion:', error);
         }
@@ -54,7 +53,7 @@ export const usePromotions = () => {
     const deletePromotion = async (promotionId) => {
         try {
             await authClient.delete(`/promotions/${promotionId}`);
-            dispatch(promotionActions.removePromotion(promotionId)); // Assuming the action removes the promotion by ID
+            dispatch(promotionActions.removePromotion(promotionId)); 
         } catch (error) {
             console.error('Failed to delete promotion:', error);
         }

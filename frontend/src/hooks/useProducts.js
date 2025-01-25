@@ -1,4 +1,3 @@
-// src/hooks/useProducts.js
 import { useDispatch, useSelector } from 'react-redux';
 import { productActions } from '../store/reducers/productSlice';
 import { authClient } from '../constants/axiosInstance';
@@ -11,9 +10,8 @@ export const useProducts = () => {
   const fetchProducts = useCallback(async () => {
     try {
       const response = await authClient.get('/products');
-    //   console.log("response-1", response);
       if (response.status === 200) {
-        dispatch(productActions.setProducts(response.data.data)); // Use the 'data' array from the response
+        dispatch(productActions.setProducts(response.data.data)); 
       }
     } catch (error) {
       console.error('Failed to fetch products:', error);
@@ -23,7 +21,7 @@ export const useProducts = () => {
   const createProduct = async (productData) => {
     try {
       const response = await authClient.post('/products', productData);
-      dispatch(productActions.addProduct(response.data)); // Assuming the response contains the created product
+      dispatch(productActions.addProduct(response.data)); 
     } catch (error) {
       console.error('Failed to create product:', error);
     }
@@ -34,7 +32,7 @@ export const useProducts = () => {
       const response = await authClient.put(`/products/${productId}`, updatedData);
       console.log("updatedData",updatedData);
       console.log("response",response);
-      dispatch(productActions.updateProduct(response.data)); // Assuming the response contains the updated product
+      dispatch(productActions.updateProduct(response.data)); 
     } catch (error) {
       console.error('Failed to edit product:', error);
     }
@@ -46,7 +44,7 @@ export const useProducts = () => {
       const response = await authClient.put(`/products/${productId}/isEnabled`, {
         isEnabled: !product.isEnabled,
       });
-      dispatch(productActions.updateProduct(response.data)); // Assuming the response contains the updated product
+      dispatch(productActions.updateProduct(response.data)); 
     } catch (error) {
       console.error('Failed to toggle product:', error);
     }
@@ -54,7 +52,7 @@ export const useProducts = () => {
   const deleteProduct = async (productId) => {
     try {
         await authClient.delete(`/products/${productId}`);
-        dispatch(productActions.removeProduct(productId)); // Assuming the action removes the product by its ID
+        dispatch(productActions.removeProduct(productId)); 
     } catch (error) {
         console.error('Failed to delete product:', error);
     }
