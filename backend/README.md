@@ -1,4 +1,4 @@
-<p align="center"> <a href="https://documenter.getpostman.com/view/39824969/2sAYQfE9vA" target="_blank">API Documentation Link</a></p>
+<p> <a href="https://documenter.getpostman.com/view/39824969/2sAYQfE9vA" target="_blank">Full API Documentation Link</a></p>
     <p align="center">
 
 <p align="center">
