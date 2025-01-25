@@ -12,7 +12,7 @@ const PromotionList = () => {
         startDate: '',
         endDate: '',
         type: 'PERCENTAGE', // Default value
-        discountValue: '',
+        discountValue: '0', // Default to 0
         isEnabled: true,
         products: [], // Initialize products as an empty array
         slabs: [], // Initialize slabs as an empty array
@@ -40,8 +40,7 @@ const PromotionList = () => {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        // Convert discountValue to a number
-        const newValue = name === 'discountValue' ? parseFloat(value) : value;
+        const newValue = name === 'discountValue' ? Math.max(0, parseFloat(value)) : value; // Prevent negative values
         setFormData({ ...formData, [name]: newValue });
     };
 
@@ -70,14 +69,49 @@ const PromotionList = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Check if startDate and endDate are valid
+        const startDateString = formData.startDate;
+        const endDateString = formData.endDate;
+
+        // Validate the date strings
+        if (!startDateString || !endDateString) {
+            console.error("Start date and end date must be provided.");
+            return; // Prevent submission if dates are invalid
+        }
+
+        const startDate = new Date(startDateString);
+        const endDate = new Date(endDateString);
+
+        // Check if the dates are valid
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            console.error("Invalid date format.");
+            return; // Prevent submission if dates are invalid
+        }
+
+        const promotionData = {
+            title: formData.title,
+            type: formData.type,
+            startDate: startDate.toISOString(), // Use the formatted date
+            endDate: endDate.toISOString(),     // Use the formatted date
+            isEnabled: formData.isEnabled,
+            products: formData.products,
+            PromotionSlabs: formData.slabs.map(slab => ({
+                minWeight: slab.minWeight,
+                maxWeight: slab.maxWeight,
+                discountPerUnit: slab.discountPerUnit,
+            })),
+        };
+
         if (isEditing) {
-            await editPromotion(currentPromotion.id, { ...formData });
+            await editPromotion(currentPromotion.id, promotionData);
             setIsEditing(false);
             setCurrentPromotion(null);
         } else {
-            await createPromotion(formData);
+            await createPromotion(promotionData);
         }
-        setFormData({ title: '', startDate: '', endDate: '', type: 'PERCENTAGE', discountValue: '', isEnabled: true, products: [], slabs: [] }); // Reset form
+
+        setFormData({ title: '', startDate: '', endDate: '', type: 'PERCENTAGE', discountValue: '0', isEnabled: true, products: [], slabs: [] }); // Reset form
         fetchPromotions(); // Fetch promotions after creating or editing
     };
 
@@ -110,6 +144,7 @@ const PromotionList = () => {
         <div className="p-4">
             <h2 className="text-2xl mb-4">Promotions</h2>
             <form onSubmit={handleSubmit} className="mb-4">
+                <label htmlFor="">Title</label>
                 <input
                     type="text"
                     name="title"
@@ -119,6 +154,7 @@ const PromotionList = () => {
                     className="border p-2 mr-2"
                     required
                 />
+                <label htmlFor="">Start Date</label>
                 <input
                     type="datetime-local"
                     name="startDate"
@@ -128,6 +164,7 @@ const PromotionList = () => {
                     className="border p-2 mr-2"
                     required
                 />
+                <label htmlFor="">End Date</label>
                 <input
                     type="datetime-local"
                     name="endDate"
@@ -137,8 +174,10 @@ const PromotionList = () => {
                     className="border p-2 mr-2"
                     required
                 />
+
                 {isEditing ? null : (
                     <>
+                        <label htmlFor="">Type</label>
                         <select
                             name="type"
                             value={formData.type}
@@ -150,6 +189,7 @@ const PromotionList = () => {
                             <option value="FIXED">FIXED</option>
                             <option value="WEIGHTED">WEIGHTED</option>
                         </select>
+                        <label htmlFor="">Discount Value (PERCENTAGE & FIXED)</label>
                         <input
                             type="number"
                             name="discountValue"
@@ -157,8 +197,10 @@ const PromotionList = () => {
                             value={formData.discountValue}
                             onChange={handleInputChange}
                             className="border p-2 mr-2"
-                            required
+                            // Prevent negative values
+                            required={formData.type === 'PERCENTAGE' || formData.type === 'FIXED'} // Only required for PERCENTAGE and FIXED types
                         />
+                        <label htmlFor="">Product select</label>
                         <select
                             name="products"
                             multiple
@@ -173,66 +215,75 @@ const PromotionList = () => {
                                 </option>
                             ))}
                         </select>
-                        <button type="button" onClick={addSlab} className="bg-green-500 text-white p-2 mr-2">
-                            Add Slab
-                        </button>
+                        {formData.type === 'WEIGHTED' && (
+                            <button type="button" onClick={addSlab} className="bg-green-500 text-white p-2 mr-2">
+                                Add Slab
+                            </button>
+                        )}
                     </>
                 )}
                 <button type="submit" className="bg-blue-500 text-white p-2">
                     {isEditing ? 'Update Promotion ' : 'Add Promotion'}
                 </button>
             </form>
-            <table className="min-w-full border mb-4">
-                <thead>
-                    <tr>
-                        <th className="border">Min Weight</th>
-                        <th className="border">Max Weight</th>
-                        <th className="border">Discount Per Unit</th>
-                        <th className="border">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {formData.slabs.map((slab, index) => (
-                        <tr key={index}>
-                            <td className="border p-2">
-                                <input
-                                    type="number"
-                                    name="minWeight"
-                                    value={slab.minWeight}
-                                    onChange={(e) => handleSlabChange(index, e)}
-                                    className="border p-1"
-                                    required
-                                />
-                            </td>
-                            <td className="border p-2">
-                                <input
-                                    type="number"
-                                    name="maxWeight"
-                                    value={slab.maxWeight}
-                                    onChange={(e) => handleSlabChange(index, e)}
-                                    className="border p-1"
-                                    required
-                                />
-                            </td>
-                            <td className="border p-2">
-                                <input
-                                    type="number"
-                                    name="discountPerUnit"
-                                    value={slab.discountPerUnit}
-                                    onChange={(e) => handleSlabChange(index, e)}
-                                    className="border p-1"
-                                    required
-                                />
-                            </td>
-                            <td className="border p-2">
-                                <button onClick={() => removeSlab(index)} className="text-red-500">
-                                    Remove
-                                </button>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+            {formData.type === 'WEIGHTED' && ( // Only show slabs if type is WEIGHTED
+                <>
+                    {isEditing ? null : (<>
+                        <table className="min-w-full border mb-4">
+                            <thead>
+                                <tr>
+                                    <th className="border">Min Weight</th>
+                                    <th className="border">Max Weight</th>
+                                    <th className="border">Discount Per Unit</th>
+                                    <th className="border">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {formData.slabs.map((slab, index) => (
+                                    <tr key={index}>
+                                        <td className="border p-2">
+                                            <input
+                                                type="number"
+                                                name="minWeight"
+                                                value={slab.minWeight}
+                                                onChange={(e) => handleSlabChange(index, e)}
+                                                className="border p-1"
+                                                required
+                                            />
+                                        </td>
+                                        <td className="border p-2">
+                                            <input
+                                                type="number"
+                                                name="maxWeight"
+                                                value={slab.maxWeight}
+                                                onChange={(e) => handleSlabChange(index, e)}
+                                                className="border p-1"
+                                                required
+                                            />
+                                        </td>
+                                        <td className="border p-2">
+                                            <input
+                                                type="number"
+                                                name="discountPerUnit"
+                                                value={slab.discountPerUnit}
+                                                onChange={(e) => handleSlabChange(index, e)}
+                                                className="border p-1"
+                                                required
+                                            />
+                                        </td>
+                                        <td className="border p-2">
+                                            <button onClick={() => removeSlab(index)} className="text-red-500">
+                                                Remove
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </>
+                    )}
+                </>
+            )}
             <table className="min-w-full border">
                 <thead>
                     <tr>
@@ -248,54 +299,68 @@ const PromotionList = () => {
                     </tr>
                 </thead>
                 <tbody>
-                    {promotions.map((promotion) => (
-                        <tr key={promotion.id}>
-                            <td className="border p-2">{promotion.title}</td>
-                            <td className="border p-2">{new Date(promotion.startDate).toISOString()}</td>
-                            <td className="border p-2">{new Date(promotion.endDate).toISOString()}</td>
-                            <td className="border p-2">{promotion.type}</td>
-                            <td className="border p-2">{promotion.discountValue}</td>
-                            <td className="border p-2">{promotion.isEnabled ? 'Yes' : 'No'}</td>
-                            <td className="border p-2">
-                                {promotion.products.length > 0 ? (
-                                    promotion.products.map(product => product.name).join(', ')
-                                ) : (
-                                    <span>No products associated</span>
-                                )}
-                            </td>
-                            <td className="border p-2">
-                                {promotion.promotionSlabs && promotion.promotionSlabs.length > 0 ? (
-                                    promotion.promotionSlabs.map((slab, index) => (
-                                        <div key={index}>
-                                            Min: {slab.minWeight}, Max: {slab.maxWeight}, Discount: {slab.discountPerUnit}
-                                        </div>
-                                    ))
-                                ) : (
-                                    <span>No slabs available</span>
-                                )}
-                            </td>
-                            <td className="border p-2">
-                                <button
-                                    onClick={() => handleEditClick(promotion)}
-                                    className="text-blue-500 mr-2"
-                                >
-                                    Edit
-                                </button>
-                                <button
-                                    onClick={() => handleToggleClick(promotion.id)}
-                                    className={`text-${promotion.isEnabled ? 'red' : 'green'}-500`}
-                                >
-                                    {promotion.isEnabled ? 'Disable' : 'Enable'}
-                                </button>
-                                <button
-                                    onClick={() => handleDeleteClick(promotion.id)}
-                                    className="text-red-500 ml-2"
-                                >
-                                    Delete
-                                </button>
-                            </td>
-                        </tr>
-                    ))}
+                    {promotions.map((promotion) => {
+                        // Create Date objects for startDate and endDate
+                        const startDate = new Date(promotion.startDate);
+                        const endDate = new Date(promotion.endDate);
+
+                        // Check if the dates are valid
+                        const isStartDateValid = !isNaN(startDate.getTime());
+                        const isEndDateValid = !isNaN(endDate.getTime());
+
+                        return (
+                            <tr key={promotion.id}>
+                                <td className="border p-2">{promotion.title}</td>
+                                <td className="border p-2">
+                                    {isStartDateValid ? startDate.toISOString() : 'Invalid Start Date'}
+                                </td>
+                                <td className="border p-2">
+                                    {isEndDateValid ? endDate.toISOString() : 'Invalid End Date'}
+                                </td>
+                                <td className="border p-2">{promotion.type}</td>
+                                <td className="border p-2">{promotion.discountValue}</td>
+                                <td className="border p-2">{promotion.isEnabled ? 'Yes' : 'No'}</td>
+                                <td className="border p-2">
+                                    {Array.isArray(promotion.products) && promotion.products.length > 0 ? (
+                                        promotion.products.map(product => product.name).join(', ')
+                                    ) : (
+                                        <span>No products associated</span>
+                                    )}
+                                </td>
+                                <td className="border p-2">
+                                    {Array.isArray(promotion.promotionSlabs) && promotion.promotionSlabs.length > 0 ? (
+                                        promotion.promotionSlabs.map((slab, index) => (
+                                            <div key={index}>
+                                                Min: {slab.minWeight}, Max: {slab.maxWeight}, Discount: {slab.discountPerUnit}
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <span>No slabs available</span>
+                                    )}
+                                </td>
+                                <td className="border p-2">
+                                    <button
+                                        onClick={() => handleEditClick(promotion)}
+                                        className="text-blue-500 mr-2"
+                                    >
+                                        Edit
+                                    </button>
+                                    <button
+                                        onClick={() => handleToggleClick(promotion.id)}
+                                        className={`text-${promotion.isEnabled ? 'red' : 'green'}-500`}
+                                    >
+                                        {promotion.isEnabled ? 'Disable' : 'Enable'}
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteClick(promotion.id)}
+                                        className="text-red-500 ml-2"
+                                    >
+                                        Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        );
+                    })}
                 </tbody>
             </table>
         </div>

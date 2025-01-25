@@ -31,7 +31,8 @@ export const usePromotions = () => {
 
     const editPromotion = async (promotionId, updatedData) => {
         try {
-            const response = await authClient.put(`/promotions/${promotionId}`, updatedData);
+            const { title, startDate, endDate } = updatedData; // Extract specific data
+            const response = await authClient.put(`/promotions/${promotionId}`, {title:title,startDate:startDate,endDate:endDate});
             dispatch(promotionActions.updatePromotion(response.data)); // Assuming the response contains the updated promotion
         } catch (error) {
             console.error('Failed to edit promotion:', error);
